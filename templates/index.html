@@ -1,1 +1,357 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beer Servings | Alcohol Prediction</title>
+
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #182230;
+        }
+
+        header {
+            background: linear-gradient(120deg, #102a56, #2764d8);
+            color: white;
+            padding: 35px 6%;
+        }
+
+        header h1 {
+            margin: 0 0 10px;
+            font-size: 32px;
+        }
+
+        header p {
+            margin: 0;
+            color: #e0eaff;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 25px auto;
+            padding: 0 16px 40px;
+        }
+
+        .stats, .charts {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .charts {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .card, .panel {
+            background: white;
+            border: 1px solid #e0e6ef;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+        }
+
+        .label {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .value {
+            font-size: 25px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        h2 {
+            font-size: 21px;
+            margin-top: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            font-size: 15px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 13px 20px;
+            background: #2764d8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #174bb0;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #edf5ff;
+            border: 1px solid #c8ddff;
+            border-radius: 10px;
+        }
+
+        .result strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 8px;
+        }
+
+        .error {
+            color: #b42318;
+            margin-top: 15px;
+        }
+
+        .note {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid #e0e6ef;
+        }
+
+        th {
+            color: #64748b;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 700px) {
+            .stats, .charts, .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Beer Servings & Alcohol Prediction</h1>
+    <p>Explore alcohol consumption data and predict total litres of pure alcohol using machine learning.</p>
+</header>
+
+<main>
+
+    <!-- Dataset infographics -->
+    <section class="stats">
+        <div class="card">
+            <div class="label">Countries in dataset</div>
+            <div class="value">{{ metrics.rows_used }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Best Regression Model</div>
+            <div class="value" style="font-size: 20px;">
+                {{ metrics.best_model }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">Evaluation R² Score</div>
+            <div class="value">
+                {{ "%.3f"|format(metrics.best_evaluation_r2) }}
+            </div>
+        </div>
+    </section>
+
+    <!-- Data visualizations -->
+    <section class="charts">
+        <div class="panel">
+            {{ chart1|safe }}
+        </div>
+
+        <div class="panel">
+            {{ chart2|safe }}
+        </div>
+    </section>
+
+    <!-- Prediction form -->
+    <section class="panel">
+        <h2>Predict Total Litres of Pure Alcohol</h2>
+
+        <p class="note">
+            Select a country and continent, then enter beer, spirit,
+            and wine servings to get a prediction from the selected model.
+        </p>
+
+        <form method="POST" action="/">
+            <div class="form-grid">
+
+                <div>
+                    <label for="country">Country</label>
+                    <select id="country" name="country" required>
+                        {% for c in countries %}
+                        <option value="{{ c }}"
+                            {% if form.get('country') == c %}selected{% endif %}>
+                            {{ c }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="continent">Continent</label>
+                    <select id="continent" name="continent" required>
+                        {% for c in continents %}
+                        <option value="{{ c }}"
+                            {% if form.get('continent') == c %}selected{% endif %}>
+                            {{ c }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="beer_servings">Beer Servings</label>
+                    <input
+                        type="number"
+                        id="beer_servings"
+                        name="beer_servings"
+                        min="0"
+                        step="1"
+                        value="{{ form.get('beer_servings', 100) }}"
+                        required>
+                </div>
+
+                <div>
+                    <label for="spirit_servings">Spirit Servings</label>
+                    <input
+                        type="number"
+                        id="spirit_servings"
+                        name="spirit_servings"
+                        min="0"
+                        step="1"
+                        value="{{ form.get('spirit_servings', 50) }}"
+                        required>
+                </div>
+
+                <div>
+                    <label for="wine_servings">Wine Servings</label>
+                    <input
+                        type="number"
+                        id="wine_servings"
+                        name="wine_servings"
+                        min="0"
+                        step="1"
+                        value="{{ form.get('wine_servings', 25) }}"
+                        required>
+                </div>
+
+            </div>
+
+            <button type="submit">Predict Alcohol Litres</button>
+        </form>
+
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+
+        {% if prediction is not none %}
+        <div class="result">
+            Predicted Total Litres of Pure Alcohol
+            <strong>{{ "%.2f"|format(prediction) }} litres</strong>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Model comparison -->
+    <section class="panel">
+        <h2>Regression Model Comparison</h2>
+
+        <p class="note">
+            Models are compared using evaluation R² scores.
+            The model with the highest evaluation R² is selected for deployment.
+        </p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Evaluation R²</th>
+                        <th>MAE</th>
+                        <th>RMSE</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in metrics.models %}
+                    <tr>
+                        <td>
+                            {{ item.model }}
+                            {% if item.model == metrics.best_model %}★{% endif %}
+                        </td>
+                        <td>{{ "%.4f"|format(item.evaluation_r2) }}</td>
+                        <td>{{ "%.4f"|format(item.mae) }}</td>
+                        <td>{{ "%.4f"|format(item.rmse) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="note">
+            Hyperparameters are tuned using five-fold cross-validation
+            on the training dataset. Scores shown are generated by the
+            model training script.
+        </p>
+    </section>
+
+    <p class="note">
+        Note: Predictions are estimates based on a historical country-level
+        dataset and should not be interpreted as current individual measurements.
+    </p>
+
+</main>
+
+</body>
+</html>
